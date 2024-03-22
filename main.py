@@ -21,7 +21,7 @@ while (True):
     result, frame = vid.read()
     cv2.imshow('frame', frame)
     cv2.imshow('Edge', process(frame))
-    process(frame)
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
