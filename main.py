@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+from typing import Iterable, List, Tuple, Union
+import matplotlib.pyplot as plt
+
 # frame = cv2.imread('low_bright.jpeg')
 
 vid = cv2.VideoCapture(0)
@@ -44,12 +47,33 @@ def process(frame):
 		t2 = 100
 	
 	gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-	blur = cv2.GaussianBlur(frame,(3,3), sigmaX=0, sigmaY=0)
+	blur = cv2.GaussianBlur(gray,(3,3), sigmaX=0, sigmaY=0)
 	sobelx = cv2.Sobel(src=blur, ddepth=cv2.CV_64F, dx=1, dy=0, ksize=5) # Sobel Edge Detection on the X axis
 	sobely = cv2.Sobel(src=blur, ddepth=cv2.CV_64F, dx=0, dy=1, ksize=5) # Sobel Edge Detection on the Y axis
 	sobelxy = cv2.Sobel(src=blur, ddepth=cv2.CV_64F, dx=1, dy=1, ksize=5) # Combined X and Y Sobel Edge Detection
 	edges = cv2.Canny(image=blur, threshold1=t1, threshold2=t2)
 	return edges
+
+def convert(image : np.ndarray, output_path : str, plot_dict : dict = {"color" : "k", "linewidth" : 2.0}, default_height : float = 8) -> List[np.ndarray]:
+	contour_tuple = cv2.findContours(image, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
+	contours = contour_tuple[0]
+	rings = [np.array(c).reshape([-1, 2]) for c in contours]
+
+	max_x, max_y, min_x, min_y = 0, 0, 0, 0
+	for ring in rings:
+		max_x = max(max_x, ring.max(axis=0)[0])
+		max_y = max(max_y, ring.max(axis=0)[1])
+		min_x = max(min_x, ring.min(axis=0)[0])
+		min_y = max(min_y, ring.min(axis=0)[1])
+	
+	for _, ring in enumerate(rings):
+		close_ring = np.vstack((ring, ring[0]))
+		xx = close_ring[..., 0]
+		yy = max_y - close_ring[..., 1]
+		plt.plot(xx, yy, **plot_dict)
+	
+	plt.axis("off")
+	plt.savefig(output_path)
 
 cv2.namedWindow('Control Panel') 
 cv2.createTrackbar('Threshold 1', 'Control Panel', 50, 200, process)
@@ -61,7 +85,11 @@ while (True):
 	result, frame = vid.read()
 	frame = Adjust(frame, 0)
 	cv2.imshow('frame', frame)
-	cv2.imshow('Edge', process(frame))
+	edged = process(frame)
+	cv2.imshow('Edge', edged)
+
+	if cv2.waitKey(1) & 0xFF == ord('s'):
+		convert(edged, output_path="saved.svg")
 
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 		break
