@@ -91,6 +91,7 @@ while (True):
 	cv2.imshow('Edge', edged)
 
 	if cv2.waitKey(1) == ord('s'):
+		cv2.imshow('preview', edged)
 		convert(edged, output_path="saved.svg")
 	elif cv2.waitKey(1) == ord('q'):
 		break
